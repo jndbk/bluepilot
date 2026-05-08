@@ -79,14 +79,18 @@ def check_panda_support(panda) -> bool:
 
 def main() -> None:
   # signal pandad to close the relay and exit
+  processes: list[subprocess.Popen] = []
+
   def signal_handler(signum, frame):
     cloudlog.info(f"Caught signal {signum}, exiting")
     nonlocal do_exit
     do_exit = True
-    if process is not None:
-      process.send_signal(signal.SIGINT)
+    for p in processes:
+      try:
+        p.send_signal(signal.SIGINT)
+      except Exception:
+        pass
 
-  process = None
   do_exit = False
   signal.signal(signal.SIGINT, signal_handler)
 
@@ -100,6 +104,7 @@ def main() -> None:
       count += 1
       cloudlog.event("pandad.flash_and_connect", count=count)
       params.remove("PandaSignatures")
+      processes.clear()
 
       # Handle missing internal panda
       if no_internal_panda_count > 0:
@@ -126,7 +131,7 @@ def main() -> None:
 
       cloudlog.info(f"{len(panda_serials)} panda(s) found, connecting - {panda_serials}")
 
-      # Flash the first panda
+      # Flash the primary panda (tres / internal)
       panda_serial = panda_serials[0]
       panda = flash_panda(panda_serial)
 
@@ -140,8 +145,8 @@ def main() -> None:
         continue
       no_internal_panda_count = 0
 
-      # log panda fw version
-      params.put("PandaSignatures", panda.get_signature())
+      # Collect firmware signatures — primary panda first
+      all_signatures = panda.get_signature()
 
       # skip health check if the detected panda is not supported
       supported_panda = check_panda_support(panda)
@@ -164,6 +169,24 @@ def main() -> None:
         panda.reset(reconnect=True)
 
       panda.close()
+
+      # Flash and prepare any secondary pandas (e.g. external red panda for CANFD_PSCM_RP)
+      secondary_serials: list[tuple[str, int]] = []
+      for idx, serial in enumerate(panda_serials[1:], start=1):
+        try:
+          secondary = flash_panda(serial)
+          all_signatures += secondary.get_signature()
+          if first_run:
+            cloudlog.info(f"Resetting secondary panda {secondary.get_usb_serial()} (index {idx})")
+            secondary.reset(reconnect=True)
+          secondary.close()
+          secondary_serials.append((serial, idx))
+        except Exception:
+          cloudlog.exception(f"Failed to set up secondary panda {serial} (index {idx}), skipping")
+
+      # log all panda fw versions
+      params.put("PandaSignatures", all_signatures)
+
     # TODO: wrap all panda exceptions in a base panda exception
     except (usb1.USBErrorNoDevice, usb1.USBErrorPipe):
       # a panda was disconnected while setting everything up. let's try again
@@ -178,10 +201,21 @@ def main() -> None:
 
     first_run = False
 
-    # run pandad with all connected serials as arguments
+    # Launch pandad C++ process for each panda with its bus index
     os.environ['MANAGER_DAEMON'] = 'pandad'
-    process = subprocess.Popen(["./pandad", panda_serial], cwd=os.path.join(BASEDIR, "selfdrive/pandad"))
-    process.wait()
+    pandad_path = os.path.join(BASEDIR, "selfdrive/pandad")
+    processes = [subprocess.Popen(["./pandad", panda_serial, "0"], cwd=pandad_path)]
+    for serial, idx in secondary_serials:
+      cloudlog.info(f"Launching pandad for secondary panda {serial} at index {idx}")
+      processes.append(subprocess.Popen(["./pandad", serial, str(idx)], cwd=pandad_path))
+
+    # Wait for primary process; when it exits clean up secondary processes
+    processes[0].wait()
+    for p in processes[1:]:
+      if p.poll() is None:
+        p.send_signal(signal.SIGINT)
+        p.wait()
+    processes = []
 
 
 if __name__ == "__main__":

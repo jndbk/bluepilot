@@ -66,6 +66,7 @@ class FordFlags(IntFlag):
   HEV_CLUSTER_DATA = 4
   HEV_BATTERY_DATA = 8
   CANFD_PSCM = 16  # CAN main bus but CANFD PSCM — uses LateralMotionControl2 via gateway
+  CANFD_PSCM_RP = 32  # CAN main bus but CANFD PSCM — uses LateralMotionControl2 via external red panda on CANFD bus
 
 
 class RADAR:
@@ -159,7 +160,7 @@ class CAR(Platforms):
   FORD_BRONCO_MK6 = FordPlatformConfig(
     [FordCarDocs("Ford Bronco 6G 2021-24")],
     CarSpecs(mass=2156, wheelbase=2.949, steerRatio=16.0),
-    flags=FordFlags.CANFD_PSCM,
+    flags=FordFlags.CANFD_PSCM_RP,
   )
   FORD_EDGE_MK2 = FordPlatformConfig(
     [FordCarDocs("Ford Edge 2022")],

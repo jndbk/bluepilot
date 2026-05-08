@@ -682,19 +682,21 @@ class CarController(CarControllerBase, IntelligentCruiseButtonManagementInterfac
       # set lat_active to the value of CC.latActive
       lat_active = CC.latActive
 
-      if self.CP.flags & (FordFlags.CANFD | FordFlags.CANFD_PSCM):
+      if self.CP.flags & (FordFlags.CANFD | FordFlags.CANFD_PSCM | FordFlags.CANFD_PSCM_RP):
         # TODO: extended mode
         # Ford uses four individual signals to dictate how to drive to the car. Curvature alone (limited to 0.02m/s^2)
         # can actuate the steering for a large portion of any lateral movements. However, in order to get further control on
         # steer actuation, the other three signals are necessary. Ford controls vehicles differently than most other makes.
         # A detailed explanation on ford control can be found here:
         # https://www.f150gen14.com/forum/threads/introducing-bluepilot-a-ford-specific-fork-for-comma3x-openpilot.24241/#post-457706
-        # CANFD_PSCM: CAN main bus but CANFD PSCM (e.g. Bronco 6G) — LMC2 routed via gateway
+        # CANFD_PSCM: CAN main bus, CANFD PSCM — LMC2 via gateway (bus 0)
+        # CANFD_PSCM_RP: CAN main bus, CANFD PSCM — LMC2 via external red panda (bus 4)
         mode = 1 if lat_active else 0
         counter = (self.frame // CarControllerParams.STEER_STEP) % 0x10
         can_sends.append(fordcan.create_lat_ctl2_msg(
           self.packer, self.CAN, mode, ramp_type, self.precision_type, -path_offset, -path_angle,
-          -apply_curvature, -desired_curvature_rate, counter
+          -apply_curvature, -desired_curvature_rate, counter,
+          bus=self.CAN.canfd_pscm,
         ))
       else:
         # Ford non-CANFD lateral control

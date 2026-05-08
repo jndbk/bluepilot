@@ -171,9 +171,9 @@ void Panda::pack_can_buffer(const capnp::List<cereal::CanData>::Reader &can_data
   uint8_t send_buf[2 * USB_TX_SOFT_LIMIT];
 
   for (const auto &cmsg : can_data_list) {
-    // check if the message is intended for this panda
+    // check if the message is intended for this panda's bus range
     uint8_t bus = cmsg.getSrc();
-    if (bus >= PANDA_BUS_OFFSET) {
+    if (bus < bus_offset_ || bus >= bus_offset_ + PANDA_BUS_OFFSET) {
       continue;
     }
     auto can_data = cmsg.getDat();
@@ -185,7 +185,7 @@ void Panda::pack_can_buffer(const capnp::List<cereal::CanData>::Reader &can_data
     header.addr = cmsg.getAddress();
     header.extended = (cmsg.getAddress() >= 0x800) ? 1 : 0;
     header.data_len_code = data_len_code;
-    header.bus = bus;
+    header.bus = bus - bus_offset_;  // remap to physical bus 0-3
     header.checksum = 0;
 
     memcpy(&send_buf[pos], (uint8_t *)&header, sizeof(can_header));
@@ -261,7 +261,7 @@ bool Panda::unpack_can_buffer(uint8_t *data, uint32_t &size, std::vector<can_fra
 
     can_frame &canData = out_vec.emplace_back();
     canData.address = header.addr;
-    canData.src = header.bus;
+    canData.src = header.bus + bus_offset_;  // remap physical bus to logical bus
     if (header.rejected) {
       canData.src += CAN_REJECTED_BUS_OFFSET;
     }

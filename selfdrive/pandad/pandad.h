@@ -5,7 +5,7 @@
 #include "common/params.h"
 #include "selfdrive/pandad/panda.h"
 
-void pandad_main_thread(std::string serial);
+void pandad_main_thread(std::string serial, int panda_index = 0);
 
 // deprecated devices
 static const std::vector<cereal::PandaState::PandaType> SUPPORTED_PANDA_TYPES = {
@@ -17,7 +17,7 @@ static const std::vector<cereal::PandaState::PandaType> SUPPORTED_PANDA_TYPES = 
 
 class PandaSafety {
 public:
-  PandaSafety(Panda *panda) : panda_(panda) {}
+  PandaSafety(Panda *panda, int panda_index = 0) : panda_(panda), panda_index_(panda_index) {}
   void configureSafetyMode(bool is_onroad);
   bool getOffroadMode();
 
@@ -30,6 +30,7 @@ private:
   bool log_once_ = false;
   bool safety_configured_ = false;
   bool prev_obd_multiplexing_ = false;
+  int panda_index_ = 0;
   Panda *panda_;
   Params params_;
 };

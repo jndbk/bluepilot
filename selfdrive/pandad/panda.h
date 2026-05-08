@@ -46,9 +46,11 @@ struct can_frame {
 class Panda {
 private:
   std::unique_ptr<PandaSpiHandle> handle;
+  uint8_t bus_offset_ = 0;
 
 public:
   Panda(std::string serial);
+  void set_bus_offset(uint8_t offset) { bus_offset_ = offset; }
 
   cereal::PandaState::PandaType hw_type = cereal::PandaState::PandaType::UNKNOWN;
 

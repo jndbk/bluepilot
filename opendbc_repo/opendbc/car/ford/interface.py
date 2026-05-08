@@ -80,6 +80,16 @@ class CarInterface(CarInterfaceBase):
       # Enable LMC2 in panda TX allowlist for both native CANFD and CANFD-PSCM (gateway) vehicles
       ret.safetyConfigs[-1].safetyParam |= FordSafetyFlags.CANFD.value
 
+    if ret.flags & FordFlags.CANFD_PSCM_RP:
+      # Dual-panda: tres (index 0) handles regular CAN, red panda (index 1) handles CANFD PSCM.
+      # Read tres param now (may already have LONG_CONTROL set above), then rebuild both configs.
+      tres_param = ret.safetyConfigs[0].safetyParam
+      tres_cfg = get_safety_config(structs.CarParams.SafetyModel.ford)
+      tres_cfg.safetyParam = tres_param
+      rp_cfg = get_safety_config(structs.CarParams.SafetyModel.ford)
+      rp_cfg.safetyParam = FordSafetyFlags.CANFD.value | (tres_param & FordSafetyFlags.LONG_CONTROL.value)
+      ret.safetyConfigs = [tres_cfg, rp_cfg]
+
     # for fw in car_fw:
     #  debug(f'ECU: {fw.ecu}, FW Version: {fw.fwVersion}', True)
 

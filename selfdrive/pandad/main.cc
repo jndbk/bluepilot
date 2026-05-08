@@ -17,6 +17,7 @@ int main(int argc, char *argv[]) {
   }
 
   std::string serial = (argc > 1) ? argv[1] : "";
-  pandad_main_thread(serial);
+  int panda_index = (argc > 2) ? std::stoi(argv[2]) : 0;
+  pandad_main_thread(serial, panda_index);
   return 0;
 }

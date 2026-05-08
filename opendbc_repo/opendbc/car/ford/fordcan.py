@@ -1,4 +1,5 @@
 from opendbc.car import CanBusBase, structs
+from opendbc.car.ford.values import FordFlags
 
 HUDControl = structs.CarControl.HUDControl
 
@@ -6,6 +7,11 @@ HUDControl = structs.CarControl.HUDControl
 class CanBus(CanBusBase):
   def __init__(self, CP=None, fingerprint=None) -> None:
     super().__init__(CP, fingerprint)
+    self._cp_flags = int(CP.flags) if CP is not None else 0
+    # For RP variant: force offset to 0 so all regular CAN stays on bus 0 (tres).
+    # LMC2 is routed to the red panda via canfd_pscm (always logical bus 4).
+    if self._cp_flags & int(FordFlags.CANFD_PSCM_RP):
+      self.offset = 0
 
   @property
   def main(self) -> int:
@@ -18,6 +24,13 @@ class CanBus(CanBusBase):
   @property
   def camera(self) -> int:
     return self.offset + 2
+
+  @property
+  def canfd_pscm(self) -> int:
+    """Bus for LMC2: logical bus 4 (red panda bus 0) for RP variant, main bus otherwise."""
+    if self._cp_flags & int(FordFlags.CANFD_PSCM_RP):
+      return 4
+    return self.offset
 
 
 def calculate_lat_ctl2_checksum(mode: int, counter: int, dat: bytearray) -> int:
@@ -102,7 +115,7 @@ def create_lat_ctl_msg(packer, CAN: CanBus, lat_active: bool, ramp_type: int, pr
 
 
 def create_lat_ctl2_msg(packer, CAN: CanBus, mode: int, ramp_type: int, precision_type: int, path_offset: float, path_angle: float, curvature: float,
-                        curvature_rate: float, counter: int):
+                        curvature_rate: float, counter: int, bus: int | None = None):
   """
   Create a CAN message for the new Ford Lane Centering command.
 
@@ -130,7 +143,8 @@ def create_lat_ctl2_msg(packer, CAN: CanBus, mode: int, ramp_type: int, precisio
   dat = packer.make_can_msg("LateralMotionControl2", 0, values)[1]
   values["LatCtlPath_No_Cs"] = calculate_lat_ctl2_checksum(mode, counter, dat)
 
-  return packer.make_can_msg("LateralMotionControl2", CAN.main, values)
+  tx_bus = bus if bus is not None else CAN.main
+  return packer.make_can_msg("LateralMotionControl2", tx_bus, values)
 
 
 def create_acc_msg(packer, CAN: CanBus, long_active: bool, gas: float, accel: float, accel_pred: float, stopping: bool,

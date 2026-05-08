@@ -370,7 +370,7 @@ void process_peripheral_state(Panda *panda, PubMaster *pm, bool no_fan_control) 
   }
 }
 
-void pandad_run(Panda *panda) {
+void pandad_run(Panda *panda, int panda_index) {
   const bool no_fan_control = getenv("NO_FAN_CONTROL") != nullptr;
   const bool spoofing_started = getenv("STARTED") != nullptr;
   const bool fake_send = getenv("FAKESEND") != nullptr;
@@ -380,9 +380,28 @@ void pandad_run(Panda *panda) {
 
   Params params;
   RateKeeper rk("pandad", 100);
+  PandaSafety panda_safety(panda, panda_index);
+
+  if (panda_index > 0) {
+    // Secondary panda (e.g. red panda on CANFD bus): CAN send/recv + safety only.
+    // Primary panda publishes pandaStates and peripheralState.
+    PubMaster pm({"can"});
+    bool is_onroad = false;
+    while (!do_exit && check_connected(panda)) {
+      can_recv(panda, &pm);
+      if (rk.frame() % 10 == 0) {
+        is_onroad = params.getBool("IsOnroad");
+        panda_safety.configureSafetyMode(is_onroad);
+      }
+      rk.keepTime();
+    }
+    send_thread.join();
+    return;
+  }
+
+  // Primary panda: full loop including state publishing
   SubMaster sm({"selfdriveState", "selfdriveStateSP", "carParams"});
   PubMaster pm({"can", "pandaStates", "peripheralState"});
-  PandaSafety panda_safety(panda);
   bool engaged = false;
   bool engaged_mads = false;
   bool is_onroad = false;
@@ -437,7 +456,7 @@ void pandad_run(Panda *panda) {
   send_thread.join();
 }
 
-void pandad_main_thread(std::string serial) {
+void pandad_main_thread(std::string serial, int panda_index) {
   if (serial.empty()) {
     auto serials = Panda::list();
 
@@ -448,7 +467,7 @@ void pandad_main_thread(std::string serial) {
     serial = serials[0];
   }
 
-  LOGW("connecting to panda: %s", serial.c_str());
+  LOGW("connecting to panda: %s (index %d)", serial.c_str(), panda_index);
 
   Panda *panda = nullptr;
   while (!do_exit) {
@@ -458,8 +477,9 @@ void pandad_main_thread(std::string serial) {
   }
 
   if (!do_exit) {
-    LOGW("connected to panda");
-    pandad_run(panda);
+    panda->set_bus_offset(static_cast<uint8_t>(panda_index * PANDA_BUS_OFFSET));
+    LOGW("connected to panda (index %d, bus_offset %d)", panda_index, panda_index * PANDA_BUS_OFFSET);
+    pandad_run(panda, panda_index);
   }
 
   delete panda;

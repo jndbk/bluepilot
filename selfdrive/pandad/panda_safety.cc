@@ -21,6 +21,12 @@ void PandaSafety::configureSafetyMode(bool is_onroad) {
 }
 
 void PandaSafety::updateMultiplexingMode() {
+  // OBD multiplexing only applies to the primary panda (tres on CAN bus)
+  if (panda_index_ > 0) {
+    initialized_ = true;
+    return;
+  }
+
   // Initialize to ELM327 without OBD multiplexing for initial fingerprinting
   if (!initialized_) {
     prev_obd_multiplexing_ = false;
@@ -70,8 +76,14 @@ void PandaSafety::setSafetyMode(const std::vector<std::string> &params_string) {
   uint16_t alternative_experience = car_params.getAlternativeExperience();
   uint16_t safety_param_sp = car_params_sp.getSafetyParam();
 
-  cereal::CarParams::SafetyModel safety_model = safety_configs[0].getSafetyModel();
-  uint16_t safety_param = safety_configs[0].getSafetyParam();
+  if (panda_index_ >= (int)safety_configs.size()) {
+    LOGW("panda %d: no safety config at index %d, defaulting to NO_OUTPUT", panda_index_, panda_index_);
+    panda_->set_safety_model(cereal::CarParams::SafetyModel::NO_OUTPUT, 0U);
+    return;
+  }
+
+  cereal::CarParams::SafetyModel safety_model = safety_configs[panda_index_].getSafetyModel();
+  uint16_t safety_param = safety_configs[panda_index_].getSafetyParam();
 
   LOGW("setting safety model: %d, param: %d, alternative experience: %d, param_sp: %d", (int)safety_model, safety_param, alternative_experience, safety_param_sp);
   panda_->set_alternative_experience(alternative_experience, safety_param_sp);
