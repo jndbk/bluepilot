@@ -5,6 +5,10 @@ from opendbc.car.ford.values import CAR
 Ecu = CarParams.Ecu
 
 FW_VERSIONS = {
+  CAR.FORD_BRONCO_MK6: {
+    # Firmware versions to be populated from real-world fingerprinting
+    # CAN main bus, CANFD PSCM (LateralMotionControl2 via gateway)
+  },
   CAR.FORD_BRONCO_SPORT_MK1: {
     (Ecu.eps, 0x730, None): [
       b'LX6C-14D003-AH\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00',

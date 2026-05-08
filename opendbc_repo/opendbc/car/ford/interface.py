@@ -76,12 +76,14 @@ class CarInterface(CarInterfaceBase):
       ret.safetyConfigs[-1].safetyParam |= FordSafetyFlags.LONG_CONTROL.value
       ret.openpilotLongitudinalControl = True
 
-    if ret.flags & FordFlags.CANFD:
+    if ret.flags & (FordFlags.CANFD | FordFlags.CANFD_PSCM):
+      # Enable LMC2 in panda TX allowlist for both native CANFD and CANFD-PSCM (gateway) vehicles
       ret.safetyConfigs[-1].safetyParam |= FordSafetyFlags.CANFD.value
 
     # for fw in car_fw:
     #  debug(f'ECU: {fw.ecu}, FW Version: {fw.fwVersion}', True)
 
+    if ret.flags & FordFlags.CANFD:
       # TRON (SecOC) platforms are not supported
       # LateralMotionControl2, ACCDATA are 16 bytes on these platforms
       if len(fingerprint[CAN.camera]):

@@ -112,3 +112,8 @@ TASK.md
 ### Agent Info ###
 bluepilot/agent_info/
 bluepilot/agent_tools/
+tools/jotpluggler/layouts/Path_Angle_Analysis.json
+tools/jotpluggler/layouts/.jotpluggler_autosave/path_angle_analysis.json
+tools/jotpluggler/jotpluggler
+tools/jotpluggler/generated_dbcs/.stamp
+tools/jotpluggler/car_fingerprint_to_dbc.h

@@ -65,6 +65,7 @@ class FordFlags(IntFlag):
   ALT_STEER_ANGLE = 2
   HEV_CLUSTER_DATA = 4
   HEV_BATTERY_DATA = 8
+  CANFD_PSCM = 16  # CAN main bus but CANFD PSCM — uses LateralMotionControl2 via gateway
 
 
 class RADAR:
@@ -92,6 +93,7 @@ class FordCarDocs(CarDocs):
     harness = CarHarness.ford_q4 if CP.flags & FordFlags.CANFD else CarHarness.ford_q3
     if CP.carFingerprint in (
       CAR.FORD_BRONCO_SPORT_MK1,
+      CAR.FORD_BRONCO_MK6,
       CAR.FORD_MAVERICK_MK1,
       CAR.FORD_F_150_MK14,
       CAR.FORD_F_150_LIGHTNING_MK1,
@@ -153,6 +155,11 @@ class CAR(Platforms):
   FORD_BRONCO_SPORT_MK1 = FordPlatformConfig(
     [FordCarDocs("Ford Bronco Sport 2021-24")],
     CarSpecs(mass=1625, wheelbase=2.67, steerRatio=17.7),
+  )
+  FORD_BRONCO_MK6 = FordPlatformConfig(
+    [FordCarDocs("Ford Bronco 6G 2021-24")],
+    CarSpecs(mass=2156, wheelbase=2.949, steerRatio=16.0),
+    flags=FordFlags.CANFD_PSCM,
   )
   FORD_EDGE_MK2 = FordPlatformConfig(
     [FordCarDocs("Ford Edge 2022")],

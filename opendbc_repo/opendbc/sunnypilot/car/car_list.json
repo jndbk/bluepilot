@@ -460,6 +460,19 @@
     ],
     "package": "Adaptive Cruise Control (ACC)"
   },
+  "Ford Bronco 6G 2021-24": {
+    "platform": "FORD_BRONCO_MK6",
+    "make": "Ford",
+    "brand": "ford",
+    "model": "Bronco 6G",
+    "year": [
+      "2021",
+      "2022",
+      "2023",
+      "2024"
+    ],
+    "package": "Co-Pilot360 Assist+"
+  },
   "Ford Bronco Sport 2021-24": {
     "platform": "FORD_BRONCO_SPORT_MK1",
     "make": "Ford",
