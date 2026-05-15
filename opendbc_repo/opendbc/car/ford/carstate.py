@@ -376,9 +376,11 @@ class CarState(CarStateBase, MadsCarState, CarStateExt):
       ]
 
     if CP.transmissionType == TransmissionType.automatic:
-      pt_messages += [
-        ("Gear_Shift_by_Wire_FD1", 10),
-      ]
+      # CANFD_PSCM: shift-by-wire module is on CANFD bus, not CAN main; gear read via PowertrainData_10
+      if not (CP.flags & FordFlags.CANFD_PSCM):
+        pt_messages += [
+          ("Gear_Shift_by_Wire_FD1", 10),
+        ]
     elif CP.transmissionType == TransmissionType.manual:
       pt_messages += [
         ("Engine_Clutch_Data", 33),
