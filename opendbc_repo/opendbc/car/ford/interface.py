@@ -109,8 +109,10 @@ class CarInterface(CarInterfaceBase):
     # apply_interface_params(ret, "interface")
 
     # Auto Transmission: 0x732 ECU or Gear_Shift_by_Wire_FD1
+    # CANFD_PSCM vehicles (e.g. Bronco 6G) have the shift-by-wire module on CANFD,
+    # so 0x5A won't appear on the CAN main bus fingerprint — force automatic.
     found_ecus = [fw.ecu for fw in car_fw]
-    if Ecu.shiftByWire in found_ecus or 0x5A in fingerprint[CAN.main] or docs:
+    if Ecu.shiftByWire in found_ecus or 0x5A in fingerprint[CAN.main] or docs or ret.flags & FordFlags.CANFD_PSCM:
       ret.transmissionType = TransmissionType.automatic
     else:
       ret.transmissionType = TransmissionType.manual
