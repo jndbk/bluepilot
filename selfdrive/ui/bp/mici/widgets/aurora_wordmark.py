@@ -27,7 +27,7 @@ class AuroraWordmark(Widget):
     self._label = UnifiedLabel(
       "bluepilot",
       font_size=P.FS_WORDMARK,
-      font_weight=FontWeight.DISPLAY,
+      font_weight=FontWeight.AUDIOWIDE,
       text_color=P.WORDMARK_BLUE,
       max_width=520,
       wrap_text=False,
