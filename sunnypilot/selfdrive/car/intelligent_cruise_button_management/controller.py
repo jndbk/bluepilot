@@ -201,7 +201,7 @@ class IntelligentCruiseButtonManagement:
       for k in self.cruise_button_timers:
         self.cruise_button_timers[k] = 0
 
-    if not CC.enabled:
+    if not CS.cruiseState.enabled:
       # BluePilot: Reset initial cruise speed only when cruise is completely disabled (disengaged)
       # This ensures we retain the last user set speed when resuming
       self.initial_cruise_speed_kph = 0
