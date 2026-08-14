@@ -109,10 +109,12 @@ class IntelligentCruiseButtonManagement:
     # BluePilot: Track the user's manual set speed
     user_adjusting = any(self.cruise_button_timers[k] > 0 for k in self.cruise_button_timers)
     if CS.cruiseState.enabled and self.v_cruise_cluster > 0:
-      # Only capture the cluster speed as the user's set speed if the planner is targeting
-      # the cruise speed (no curve/limit active) or if the user is actively adjusting the buttons.
+      # Only capture the cluster speed as the user's set speed if:
+      # 1. The planner is targeting the cruise speed (no curve/limit active) and the speed is NOT lower than our stored set speed (unless user is adjusting)
+      # 2. Or, the user is actively adjusting the buttons.
       is_cruise_source = (LP_SP.longitudinalPlanSource == LongitudinalPlanSource.cruise)
-      if (self.state == State.holding and is_cruise_source) or user_adjusting:
+      is_not_lower = (self.v_cruise_cluster >= self.last_user_set_speed_kph)
+      if (self.state == State.holding and is_cruise_source and is_not_lower) or user_adjusting:
         self.last_user_set_speed_kph = self.v_cruise_cluster
         # Log when set speed is updated
         with open("/tmp/icbm.log", "a") as f:
