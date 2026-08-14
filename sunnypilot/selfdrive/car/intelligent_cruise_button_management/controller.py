@@ -11,6 +11,7 @@ from openpilot.common.realtime import DT_CTRL
 from openpilot.sunnypilot.selfdrive.car.intelligent_cruise_button_management.helpers import get_minimum_set_speed
 from openpilot.sunnypilot.selfdrive.car.cruise_ext import CRUISE_BUTTON_TIMER, update_manual_button_timers
 
+from openpilot.common.bluepilot import is_bluepilot
 LongitudinalPlanSource = custom.LongitudinalPlanSP.LongitudinalPlanSource
 State = custom.IntelligentCruiseButtonManagement.IntelligentCruiseButtonManagementState
 SendButtonState = custom.IntelligentCruiseButtonManagement.SendButtonState
@@ -45,10 +46,10 @@ class IntelligentCruiseButtonManagement:
 
     self.cruise_button_timers = CRUISE_BUTTON_TIMER
     
-    # BluePilot: Track initial cruise speed and user-set speed when first enabled
     self.initial_cruise_speed_kph = 0
     self.last_user_set_speed_kph = 0
     self.cruise_enabled_prev = False
+    self.frame = 0
     # End BluePilot
 
   @property
@@ -69,6 +70,8 @@ class IntelligentCruiseButtonManagement:
       else:
         current_speed_kph = CS.vEgo * CV.MS_TO_KPH
         self.initial_cruise_speed_kph = round(current_speed_kph)
+      with open("/tmp/icbm.log", "a") as f:
+        f.write(f"ICBM: Cruise enabled! last_user_set_speed_kph={self.last_user_set_speed_kph}, initial_cruise_speed_kph={self.initial_cruise_speed_kph}\n")
     self.cruise_enabled_prev = cruise_enabled
     # End BluePilot
 
@@ -92,6 +95,11 @@ class IntelligentCruiseButtonManagement:
         self.v_target = self.initial_cruise_speed_kph
       elif self.v_cruise_cluster > 0:
         self.v_target = self.v_cruise_cluster
+      
+      # Print debug info on transition/limit
+      if CS.cruiseState.enabled and self.frame % 50 == 0:
+        with open("/tmp/icbm.log", "a") as f:
+          f.write(f"ICBM: Active override! v_target={self.v_target}, initial_cruise_speed={self.initial_cruise_speed_kph}, is_limited={is_limited_by_cruise}, state={self.state}\n")
 
     # BluePilot: Track the user's manual set speed
     user_adjusting = any(self.cruise_button_timers[k] > 0 for k in self.cruise_button_timers)
@@ -179,7 +187,8 @@ class IntelligentCruiseButtonManagement:
     self.is_ready = ready and not button_pressed
 
   def run(self, CS: car.CarState, CC: car.CarControl, LP_SP: custom.LongitudinalPlanSP, is_metric: bool) -> None:
-    if self.CP_SP.pcmCruiseSpeed:
+    self.frame += 1
+    if self.CP_SP.pcmCruiseSpeed and not is_bluepilot():
       return
 
     self.is_metric = is_metric
