@@ -45,9 +45,11 @@ class IntelligentCruiseButtonManagement:
 
     self.cruise_button_timers = CRUISE_BUTTON_TIMER
     
-    # BluePilot: Track initial cruise speed when first enabled
+    # BluePilot: Track initial cruise speed and user-set speed when first enabled
     self.initial_cruise_speed_kph = 0
+    self.last_user_set_speed_kph = 0
     self.cruise_enabled_prev = False
+    # End BluePilot
 
   @property
   def v_cruise_equal(self) -> bool:
@@ -61,10 +63,14 @@ class IntelligentCruiseButtonManagement:
     # Use current speed (vEgo) as the initial setpoint if planner target is invalid/unreasonable
     cruise_enabled = CS.cruiseState.available and CS.cruiseState.enabled
     if cruise_enabled and not self.cruise_enabled_prev:
-      # Cruise just enabled - capture current speed as initial setpoint
-      current_speed_kph = CS.vEgo * CV.MS_TO_KPH
-      self.initial_cruise_speed_kph = round(current_speed_kph)
+      # Cruise just enabled - capture last user set speed or current speed as initial setpoint
+      if self.last_user_set_speed_kph > 0:
+        self.initial_cruise_speed_kph = self.last_user_set_speed_kph
+      else:
+        current_speed_kph = CS.vEgo * CV.MS_TO_KPH
+        self.initial_cruise_speed_kph = round(current_speed_kph)
     self.cruise_enabled_prev = cruise_enabled
+    # End BluePilot
 
     self.v_target_ms_last = apply_hysteresis(LP_SP.vTarget, self.v_target_ms_last, HYST_GAP * ms_conv)
 
@@ -73,14 +79,26 @@ class IntelligentCruiseButtonManagement:
     self.v_cruise_cluster = round(CS.cruiseState.speedCluster * speed_conv)
     
     # BluePilot: If planner target is invalid/unreasonable and we have an initial cruise speed,
-    # use the initial speed as the target (or cluster speed if it's been set)
+    # use the initial speed as the target. Also do this if the planner target is limited
+    # only by the lower cruise set speed but we have a higher user-set speed.
     MAX_REASONABLE_TARGET = 145 if self.is_metric else 90
-    if self.v_target >= MAX_REASONABLE_TARGET or self.v_target == 0:
-      # Planner target is invalid - use initial cruise speed or cluster speed
+    is_invalid = self.v_target >= MAX_REASONABLE_TARGET or self.v_target == 0
+    is_limited_by_cruise = (LP_SP.longitudinalPlanSource == LongitudinalPlanSource.cruise and 
+                            self.initial_cruise_speed_kph > 0 and 
+                            self.v_target < self.initial_cruise_speed_kph)
+    if is_invalid or is_limited_by_cruise:
+      # Planner target is invalid/limited - use initial cruise speed or cluster speed
       if self.initial_cruise_speed_kph > 0:
         self.v_target = self.initial_cruise_speed_kph
       elif self.v_cruise_cluster > 0:
         self.v_target = self.v_cruise_cluster
+
+    # BluePilot: Track the user's manual set speed
+    user_adjusting = any(self.cruise_button_timers[k] > 0 for k in self.cruise_button_timers)
+    if CS.cruiseState.enabled and self.v_cruise_cluster > 0:
+      if self.state == State.holding or user_adjusting:
+        self.last_user_set_speed_kph = self.v_cruise_cluster
+    # End BluePilot
 
   def update_state_machine(self) -> custom.IntelligentCruiseButtonManagement.SendButtonState:
     self.pre_active_timer = max(0, self.pre_active_timer - 1)
