@@ -54,6 +54,7 @@ class IntelligentCruiseButtonManagement:
     self.cruise_enabled_prev = False
     self.frame = 0
     self.longitudinal_plan_source = LongitudinalPlanSource.cruise
+    self.holding_frames = 0
     # End BluePilot
 
   @property
@@ -107,18 +108,24 @@ class IntelligentCruiseButtonManagement:
           f.write(f"ICBM: Active override! v_target={self.v_target}, initial_cruise_speed={self.initial_cruise_speed_kph}, is_limited={is_limited_by_cruise}, state={self.state}\n")
 
     # BluePilot: Track the user's manual set speed
+    if self.state == State.holding:
+      self.holding_frames += 1
+    else:
+      self.holding_frames = 0
+
     user_adjusting = any(self.cruise_button_timers[k] > 0 for k in self.cruise_button_timers)
     if CS.cruiseState.enabled and self.v_cruise_cluster > 0:
       # Only capture the cluster speed as the user's set speed if:
       # 1. The planner is targeting the cruise speed (no curve/limit active) and the speed is NOT lower than our stored set speed (unless user is adjusting)
-      # 2. Or, the user is actively adjusting the buttons.
+      # 2. Or, the user is actively adjusting the buttons (must have been holding stable to filter out spoofed CAN messages).
       is_cruise_source = (LP_SP.longitudinalPlanSource == LongitudinalPlanSource.cruise)
       is_not_lower = (self.v_cruise_cluster >= self.last_user_set_speed_kph)
-      if (self.state == State.holding and is_cruise_source and is_not_lower) or user_adjusting:
+      real_user_adjusting = user_adjusting and (self.holding_frames > 10)
+      if (self.state == State.holding and is_cruise_source and is_not_lower) or real_user_adjusting:
         self.last_user_set_speed_kph = self.v_cruise_cluster
         # Log when set speed is updated
         with open("/tmp/icbm.log", "a") as f:
-          f.write(f"ICBM: Updated last_user_set_speed_kph to {self.last_user_set_speed_kph}\n")
+          f.write(f"ICBM: Updated last_user_set_speed_kph to {self.last_user_set_speed_kph} (is_holding={self.state == State.holding}, real_adjusting={real_user_adjusting})\n")
     # End BluePilot
 
   def update_state_machine(self) -> custom.IntelligentCruiseButtonManagement.SendButtonState:
