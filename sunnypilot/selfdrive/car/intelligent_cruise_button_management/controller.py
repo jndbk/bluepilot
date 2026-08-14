@@ -53,6 +53,7 @@ class IntelligentCruiseButtonManagement:
     self.last_user_set_speed_kph = 0
     self.cruise_enabled_prev = False
     self.frame = 0
+    self.longitudinal_plan_source = LongitudinalPlanSource.cruise
     # End BluePilot
 
   @property
@@ -62,6 +63,7 @@ class IntelligentCruiseButtonManagement:
   def update_calculations(self, CS: car.CarState, LP_SP: custom.LongitudinalPlanSP) -> None:
     speed_conv = CV.MS_TO_KPH if self.is_metric else CV.MS_TO_MPH
     ms_conv = CV.KPH_TO_MS if self.is_metric else CV.MPH_TO_MS
+    self.longitudinal_plan_source = LP_SP.longitudinalPlanSource
 
     # BluePilot: Capture initial cruise speed when cruise is first enabled
     # Use current speed (vEgo) as the initial setpoint if planner target is invalid/unreasonable
@@ -150,7 +152,9 @@ class IntelligentCruiseButtonManagement:
               else:
                 self.state = State.increasing
 
-            elif self.v_target < self.v_cruise_cluster and self.v_cruise_cluster > self.v_cruise_min:
+            elif (self.v_target < self.v_cruise_cluster and 
+                  self.v_cruise_cluster > self.v_cruise_min and 
+                  self.longitudinal_plan_source != LongitudinalPlanSource.cruise):
               self.state = State.decreasing
 
         # HOLDING
