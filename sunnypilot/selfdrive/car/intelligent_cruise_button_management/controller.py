@@ -161,9 +161,7 @@ class IntelligentCruiseButtonManagement:
               else:
                 self.state = State.increasing
 
-            elif (self.v_target < self.v_cruise_cluster and 
-                  self.v_cruise_cluster > self.v_cruise_min and 
-                  self.longitudinal_plan_source != LongitudinalPlanSource.cruise):
+            elif self.v_target < self.v_cruise_cluster and self.v_cruise_cluster > self.v_cruise_min:
               self.state = State.decreasing
 
         # HOLDING
