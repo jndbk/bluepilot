@@ -116,6 +116,17 @@ def main_thread():
   update_installed_version(VERSION, params)
   config_realtime_process([0, 1, 2, 3], 5)
 
+  # Inject default mapd settings into the parameter system
+  try:
+    settings_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "default_mapd_settings.json")
+    if os.path.exists(settings_path):
+      with open(settings_path, "r") as f:
+        settings_data = f.read()
+        params.put("MapdSettings", settings_data)
+        print("mapd_manager: Successfully injected default MapdSettings", flush=True)
+  except Exception as e:
+    cloudlog.exception(f"mapd_manager: failed to inject default MapdSettings: {e}")
+
   rk = Ratekeeper(1, print_delay_threshold=None)
   live_map_sp = OsmMapData()
 
