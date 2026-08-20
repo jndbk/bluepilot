@@ -1,0 +1,23 @@
+{
+  "settings_version": 2,
+  "speed_limit": {
+    "speed_limit_change_requires_accept": true,
+    "press_gas_to_accept_speed_limit": true,
+    "press_gas_to_override_speed_limit": true,
+    "accept_speed_limit_timeout": 10
+  },
+  "personalities": {
+    "relaxed": {
+      "map_curve_target_lat_a": 2.0,
+      "vision_curve_target_lat_a": 2.0
+    },
+    "standard": {
+      "map_curve_target_lat_a": 3.0,
+      "vision_curve_target_lat_a": 3.0
+    },
+    "aggressive": {
+      "map_curve_target_lat_a": 4.0,
+      "vision_curve_target_lat_a": 4.0
+    }
+  }
+}
