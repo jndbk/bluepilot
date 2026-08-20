@@ -22,8 +22,10 @@ from openpilot.system.version import is_prebuilt
 from openpilot.sunnypilot.mapd import MAPD_PATH, MAPD_BIN_DIR
 import openpilot.system.sentry as sentry
 
-VERSION = "v1.12.0"
-URL = f"https://github.com/pfeiferj/openpilot-mapd/releases/download/{VERSION}/mapd"
+# BluePilot: use mapd v2.3.0
+VERSION = "v2.3.0"
+URL = f"https://github.com/pfeiferj/mapd/releases/download/{VERSION}/mapd"
+# End BluePilot
 
 
 def update_installed_version(version: str, params: Params = None) -> None:
