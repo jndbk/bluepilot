@@ -241,6 +241,9 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     // mapd
     {"MapAdvisorySpeedLimit", {CLEAR_ON_ONROAD_TRANSITION, FLOAT}},
     {"MapdVersion", {PERSISTENT, STRING}},
+    // BluePilot: register MapdSettings param for mapd v2.x settings persistence
+    {"MapdSettings", {PERSISTENT | BACKUP, JSON}},
+    // End BluePilot
     {"MapSpeedLimit", {CLEAR_ON_ONROAD_TRANSITION, FLOAT, "0.0"}},
     {"NextMapSpeedLimit", {CLEAR_ON_ONROAD_TRANSITION, JSON}},
     {"Offroad_OSMUpdateRequired", {CLEAR_ON_MANAGER_START, JSON}},
