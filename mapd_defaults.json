@@ -8,8 +8,8 @@
   },
   "personalities": {
     "relaxed": {
-      "map_curve_target_lat_a": 2.0,
-      "vision_curve_target_lat_a": 2.0
+      "map_curve_target_lat_a": 2.1,
+      "vision_curve_target_lat_a": 2.1
     },
     "standard": {
       "map_curve_target_lat_a": 3.0,
