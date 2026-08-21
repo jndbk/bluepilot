@@ -601,8 +601,81 @@ struct CustomReserved16 @0xfc6241ed8877b611 {
 struct CustomReserved17 @0xa30662f84033036c {
 }
 
-struct CustomReserved18 @0xc86a3d38d13eb3ef {
+enum WaySelectionType {
+  current @0;
+  predicted @1;
+  possible @2;
+  extended @3;
+  fail @4;
 }
 
-struct CustomReserved19 @0xa4f1eb3323f5f582 {
+enum RoadContext {
+  freeway @0;
+  city @1;
+  unknown @2;
+}
+
+enum HighwayClass {
+  unknown @0;
+  motorway @1;
+  motorwayLink @2;
+  trunk @3;
+  trunkLink @4;
+  primary @5;
+  primaryLink @6;
+  secondary @7;
+  secondaryLink @8;
+  tertiary @9;
+  tertiaryLink @10;
+  unclassified @11;
+  residential @12;
+  livingStreet @13;
+}
+
+enum MapdInputType {
+  none @0;
+  query @1;
+  select @2;
+  destination @3;
+  settings @4;
+  tile @5;
+  location @6;
+}
+
+struct MapdIn @0xc86a3d38d13eb3ef {
+  type @0 :MapdInputType;
+  float @1 :Float32;
+  str @2 :Text;
+  bool @3 :Bool;
+  jsonPath @4 :Text;
+}
+
+struct MapdOut @0xa4f1eb3323f5f582 {
+  wayName @0 :Text;
+  wayRef @1 :Text;
+  roadName @2 :Text;
+  speedLimit @3 :Float32;
+  nextSpeedLimit @4 :Float32;
+  nextSpeedLimitDistance @5 :Float32;
+  hazard @6 :Text;
+  nextHazard @7 :Text;
+  nextHazardDistance @8 :Float32;
+  advisorySpeed @9 :Float32;
+  nextAdvisorySpeed @10 :Float32;
+  nextAdvisorySpeedDistance @11 :Float32;
+  oneWay @12 :Bool;
+  lanes @13 :UInt8;
+  tileLoaded @14 :Bool;
+  speedLimitSuggestedSpeed @15 :Float32;
+  suggestedSpeed @16 :Float32;
+  estimatedRoadWidth @17 :Float32;
+  roadContext @18 :RoadContext;
+  distanceFromWayCenter @19 :Float32;
+  visionCurveSpeed @20 :Float32;
+  mapCurveSpeed @21 :Float32;
+  waySelectionType @22 :WaySelectionType;
+  speedLimitAccepted @23 :Bool;
+  highwayClass @24 :HighwayClass;
+  wayId @25 :Int64;
+  conditionalSpeedLimit @26 :Text;
 }

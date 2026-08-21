@@ -98,6 +98,8 @@ _services: dict[str, tuple] = {
   # BluePilot: controllerStateBP (lateral uncertainty) + carStateBP (hybrid drive)
   "controllerStateBP": (True, 100., 10),
   "carStateBP": (True, 100., 10),
+  "mapdOut": (True, 20., 1),
+  "mapdIn": (True, 20., 1),
 
   # debug
   "uiDebug": (True, 0., 1),

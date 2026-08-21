@@ -243,7 +243,22 @@ class SmartCruiseControlMap:
 
     return enabled, active
 
-  def update(self, long_enabled: bool, long_override: bool, v_ego, a_ego, v_cruise) -> None:
+  def update(self, *args, **kwargs) -> None:
+    # Support both update(sm, long_enabled, long_override, v_ego, a_ego, v_cruise)
+    # and legacy update(long_enabled, long_override, v_ego, a_ego, v_cruise)
+    sm = None
+    if len(args) == 6:
+      sm, long_enabled, long_override, v_ego, a_ego, v_cruise = args
+    elif len(args) == 5:
+      long_enabled, long_override, v_ego, a_ego, v_cruise = args
+    else:
+      sm = kwargs.get('sm')
+      long_enabled = kwargs.get('long_enabled', False)
+      long_override = kwargs.get('long_override', False)
+      v_ego = kwargs.get('v_ego', 0.0)
+      a_ego = kwargs.get('a_ego', 0.0)
+      v_cruise = kwargs.get('v_cruise', 0.0)
+
     self.long_enabled = long_enabled
     self.long_override = long_override
     self.v_ego = v_ego
@@ -251,7 +266,21 @@ class SmartCruiseControlMap:
     self.v_cruise = v_cruise
 
     self.update_params()
-    self.update_calculations()
+
+    # Check native mapdOut from mapd v2.3.0
+    if sm is not None and hasattr(sm, 'seen') and sm.seen.get('mapdOut', False):
+      mapd_out = sm['mapdOut']
+      mapd_curve_speed = float(mapd_out.mapCurveSpeed)
+      tile_loaded = bool(mapd_out.tileLoaded)
+
+      if tile_loaded and 0.0 < mapd_curve_speed < 200.0:
+        self.v_target = mapd_curve_speed
+        self.target_lat = 0.0
+        self.target_lon = 0.0
+      else:
+        self.v_target = 0.0
+    else:
+      self.update_calculations()
 
     self.is_enabled, self.is_active = self._update_state_machine()
 

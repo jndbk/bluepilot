@@ -19,7 +19,7 @@ class BaseMapData(ABC):
   def __init__(self):
     self.params = Params()
 
-    self.sm = messaging.SubMaster(['liveLocationKalman'])
+    self.sm = messaging.SubMaster(['liveLocationKalman', 'mapdOut'])
     self.pm = messaging.PubMaster(['liveMapDataSP'])
 
     self.localizer_valid = False
