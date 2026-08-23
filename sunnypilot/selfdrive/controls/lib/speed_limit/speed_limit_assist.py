@@ -29,8 +29,8 @@ ENABLED_STATES = (SpeedLimitAssistState.preActive, SpeedLimitAssistState.pending
 DISABLED_GUARD_PERIOD = 0.5  # secs.
 # secs. Time to wait after activation before considering temp deactivation signal.
 PRE_ACTIVE_GUARD_PERIOD = {
-  True: 15,
-  False: 5,
+  True: 20,
+  False: 20,
 }
 SPEED_LIMIT_CHANGED_HOLD_PERIOD = 1  # secs. Time to wait after speed limit change before switching to preActive.
 
@@ -191,14 +191,8 @@ class SpeedLimitAssist:
 
   @property
   def apply_confirm_speed_threshold(self) -> bool:
-    # below CST: always require user confirmation
-    if self.v_cruise_cluster_below_confirm_speed_threshold:
-      return True
-
-    # at/above CST:
-    # - new speed limit >= CST: auto change
-    # - new speed limit < CST: user confirmation required
-    return bool(self.speed_limit_final_last_conv < CONFIRM_SPEED_THRESHOLD[self.is_metric])
+    # BluePilot: always require user confirmation before adjusting to speed limit
+    return True
 
   def get_current_acceleration_as_target(self) -> float:
     return self.a_ego

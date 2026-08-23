@@ -45,7 +45,7 @@ def speed_limit_pre_active_alert(CP: car.CarParams, CS: car.CarState, sm: messag
 
   speed_limit_final_last = sm['longitudinalPlanSP'].speedLimit.resolver.speedLimitFinalLast
   speed_limit_final_last_conv = round(speed_limit_final_last * speed_conv)
-  alert_1_str = ""
+  speed_unit = "km/h" if metric else "mph"
   alert_size = AlertSize.small
 
   if CP.openpilotLongitudinalControl and CP.pcmCruise:
@@ -53,23 +53,20 @@ def speed_limit_pre_active_alert(CP: car.CarParams, CS: car.CarState, sm: messag
     cst_low, cst_high = PCM_LONG_REQUIRED_MAX_SET_SPEED[metric]
     pcm_long_required_max = cst_low if speed_limit_final_last_conv < CONFIRM_SPEED_THRESHOLD[metric] else cst_high
     pcm_long_required_max_set_speed_conv = round(pcm_long_required_max * speed_conv)
-    speed_unit = "km/h" if metric else "mph"
-
     alert_1_str = f"Speed Limit Assist: set to {pcm_long_required_max_set_speed_conv} {speed_unit} to engage"
   else:
-    if IS_MICI:
-      if set_speed_conv < speed_limit_final_last_conv:
-        alert_1_str = "Press + to confirm speed limit"
-      elif set_speed_conv > speed_limit_final_last_conv:
-        alert_1_str = "Press - to confirm speed limit"
+    if set_speed_conv < speed_limit_final_last_conv:
+      alert_1_str = f"Press + to set speed to {speed_limit_final_last_conv} {speed_unit}"
+    elif set_speed_conv > speed_limit_final_last_conv:
+      alert_1_str = f"Press - to set speed to {speed_limit_final_last_conv} {speed_unit}"
     else:
-      alert_size = AlertSize.none
+      alert_1_str = f"Press + or - to set speed to {speed_limit_final_last_conv} {speed_unit}"
 
   return Alert(
     alert_1_str,
     "",
     AlertStatus.normal, alert_size,
-    Priority.LOW, VisualAlert.none, AudibleAlertSP.promptSingleLow, .1)
+    Priority.LOW, VisualAlert.none, AudibleAlertSP.promptSingleHigh, .1)
 
 
 class EventsSP(EventsBase):

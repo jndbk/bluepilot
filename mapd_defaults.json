@@ -4,7 +4,7 @@
     "speed_limit_change_requires_accept": true,
     "press_gas_to_accept_speed_limit": true,
     "press_gas_to_override_speed_limit": true,
-    "accept_speed_limit_timeout": 10
+    "accept_speed_limit_timeout": 20
   },
   "personalities": {
     "relaxed": {
