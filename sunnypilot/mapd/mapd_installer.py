@@ -22,9 +22,9 @@ from openpilot.system.version import is_prebuilt
 from openpilot.sunnypilot.mapd import MAPD_PATH, MAPD_BIN_DIR
 import openpilot.system.sentry as sentry
 
-# BluePilot: use mapd v2.3.0
-VERSION = "v2.3.0"
-URL = f"https://github.com/pfeiferj/mapd/releases/download/{VERSION}/mapd"
+# BluePilot: use jndbk mapd v2.3.0-bp1 with defaults migration fix
+VERSION = "v2.3.0-bp1"
+URL = f"https://github.com/jndbk/mapd/releases/download/{VERSION}/mapd"
 # End BluePilot
 
 
