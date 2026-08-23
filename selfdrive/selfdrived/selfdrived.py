@@ -480,13 +480,12 @@ class SelfdriveD(CruiseHelper):
     CruiseHelper.update(self, CS, self.events_sp, self.experimental_mode)
 
     # decrement personality on distance button press
-    if self.CP.openpilotLongitudinalControl:
-      if any(not be.pressed and be.type == ButtonType.gapAdjustCruise for be in CS.buttonEvents):
-        if not self.experimental_mode_switched:
-          self.personality = (self.personality - 1) % 3
-          self.params.put('LongitudinalPersonality', self.personality)
-          self.events.add(EventName.personalityChanged)
-        self.experimental_mode_switched = False
+    if any(not be.pressed and be.type == ButtonType.gapAdjustCruise for be in CS.buttonEvents):
+      if not self.experimental_mode_switched:
+        self.personality = (self.personality - 1) % 3
+        self.params.put('LongitudinalPersonality', self.personality)
+        self.events.add(EventName.personalityChanged)
+      self.experimental_mode_switched = False
 
     self.icbm.run(CS, self.sm['carControl'], self.sm['longitudinalPlanSP'], self.is_metric)
 
@@ -628,7 +627,10 @@ class SelfdriveD(CruiseHelper):
       self.is_ldw_enabled = self.params.get_bool("IsLdwEnabled")
       self.disengage_on_accelerator = self.params.get_bool("DisengageOnAccelerator")
       self.experimental_mode = self.params.get_bool("ExperimentalMode") and self.CP.openpilotLongitudinalControl
-      self.personality = self.params.get("LongitudinalPersonality", return_default=True)
+      new_personality = self.params.get("LongitudinalPersonality", return_default=True)
+      if new_personality is not None and new_personality != self.personality:
+        self.personality = new_personality
+        self.events.add(EventName.personalityChanged)
 
       self.mads.read_params()
       time.sleep(0.1)

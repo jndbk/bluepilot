@@ -843,7 +843,7 @@ EVENTS: dict[int, dict[str, Alert | AlertCallbackType]] = {
   },
 
   EventName.personalityChanged: {
-    ET.WARNING: personality_changed_alert,
+    ET.PERMANENT: personality_changed_alert,
   },
 
   EventName.userBookmark: {
