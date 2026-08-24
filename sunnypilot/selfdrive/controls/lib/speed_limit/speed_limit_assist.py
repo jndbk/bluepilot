@@ -222,9 +222,8 @@ class SpeedLimitAssist:
     if self.state != SpeedLimitAssistState.preActive:
       return False
 
-    req_plus, req_minus = compare_cluster_target(self.v_cruise_cluster, self._speed_limit_final_last, self.is_metric)
-
-    return self._get_button_release(req_plus, req_minus)
+    # BluePilot: Accept either + or - button to confirm speed limit
+    return self._get_button_release(True, True)
 
   def update_state_machine_pcm_op_long(self):
     self.long_engaged_timer = max(0, self.long_engaged_timer - 1)

@@ -55,12 +55,7 @@ def speed_limit_pre_active_alert(CP: car.CarParams, CS: car.CarState, sm: messag
     pcm_long_required_max_set_speed_conv = round(pcm_long_required_max * speed_conv)
     alert_1_str = f"Speed Limit Assist: set to {pcm_long_required_max_set_speed_conv} {speed_unit} to engage"
   else:
-    if set_speed_conv < speed_limit_final_last_conv:
-      alert_1_str = f"Press + to set speed to {speed_limit_final_last_conv} {speed_unit}"
-    elif set_speed_conv > speed_limit_final_last_conv:
-      alert_1_str = f"Press - to set speed to {speed_limit_final_last_conv} {speed_unit}"
-    else:
-      alert_1_str = f"Press + or - to set speed to {speed_limit_final_last_conv} {speed_unit}"
+    alert_1_str = f"Press + or - to set speed to {speed_limit_final_last_conv} {speed_unit}"
 
   return Alert(
     alert_1_str,
