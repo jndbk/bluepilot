@@ -82,6 +82,7 @@ class BluePilotLayout(Widget):
       ("FordPrefSteerAngleCurvature", self._steer_angle_curvature),
       ("BPDisableLaneLineStatusColor", self._disable_lane_line_status_color),
       ("BPHideCameraView", self._hide_camera_view),
+      ("BPShowCabinCamera", self._show_cabin_camera),
       ("BPRainbowLines", self._rainbow_lane_lines),
       ("ShowBlindspotOverlay", self._show_blindspot),
       ("ShowBrakeStatus", self._show_brake_status),
@@ -147,6 +148,30 @@ class BluePilotLayout(Widget):
       lambda: tr("Disable camera feed & only show lane lines and model path."),
       initial_state=self._safe_get_bool(self._params, "BPHideCameraView"),
       callback=lambda state: self._toggle_callback(state, "BPHideCameraView"),
+      icon="chffr_wheel.png"
+    )
+
+    # Cabin / Back-Seat Camera Monitor toggle
+    self._show_cabin_camera = toggle_item(
+      lambda: tr("Cabin / Back-Seat Camera Monitor"),
+      lambda: tr("Display live Picture-in-Picture feed of the cabin to monitor passengers/back-seat while driving. Tap PiP tile on-screen to cycle sizes."),
+      initial_state=self._safe_get_bool(self._params, "BPShowCabinCamera"),
+      callback=lambda state: self._toggle_callback(state, "BPShowCabinCamera"),
+      icon="chffr_wheel.png"
+    )
+
+    # Cabin Camera PiP size selector
+    try:
+      cabin_pip_size_idx = int(self._safe_get(self._params, "BPCabinCameraPipSize") or 1)
+    except (TypeError, ValueError):
+      cabin_pip_size_idx = 1
+    self._cabin_camera_size_btn = multiple_button_item(
+      lambda: tr("Cabin Camera Size"),
+      lambda: tr("Set the Picture-in-Picture window size on the driving screen."),
+      buttons=[lambda: tr("Small"), lambda: tr("Medium"), lambda: tr("Large")],
+      button_width=225,
+      callback=self._set_cabin_camera_size,
+      selected_index=cabin_pip_size_idx,
       icon="chffr_wheel.png"
     )
 
@@ -736,6 +761,8 @@ class BluePilotLayout(Widget):
         self._hide_onroad_border,
         self._disable_lane_line_status_color,
         self._hide_camera_view,
+        self._show_cabin_camera,
+        self._cabin_camera_size_btn,
         self._theme_pack_btn,
         self._theme_auto_seasonal,
         self._rainbow_lane_lines,
@@ -1071,6 +1098,10 @@ class BluePilotLayout(Widget):
   def _set_overlay_size(self, button_index: int):
     """Handle overlay size button selection."""
     self._params.put("FordPrefRadarOverlaySize", button_index)
+
+  def _set_cabin_camera_size(self, button_index: int):
+    """Handle cabin camera PiP size selection."""
+    self._params.put("BPCabinCameraPipSize", button_index)
 
   def _get_theme_display(self) -> str:
     """Label of the currently selected theme entry (falls back to Off)."""

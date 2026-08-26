@@ -359,6 +359,8 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"BPUIDebugLog", {PERSISTENT, BOOL, "0"}},
     {"Blindspot", {PERSISTENT | BACKUP, BOOL, "0"}},
     {"BlinkerPauseLaneChange", {PERSISTENT | BACKUP, BOOL, "0"}},
+    {"BPShowCabinCamera", {PERSISTENT | BACKUP, BOOL, "0"}},
+    {"BPCabinCameraPipSize", {PERSISTENT | BACKUP, INT, "1"}},
 
     // BluePilot: Portal (Web Routes Server)
     {"EnableWebRoutesServer", {PERSISTENT | BACKUP, BOOL, "0"}},

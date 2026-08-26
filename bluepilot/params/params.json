@@ -435,6 +435,24 @@
       "enabled": true
     },
     {
+      "name": "BPShowCabinCamera",
+      "default": false,
+      "type": "bool",
+      "flags": ["PERSISTENT", "BACKUP"],
+      "create_default": true,
+      "enabled": true
+    },
+    {
+      "name": "BPCabinCameraPipSize",
+      "default": 1,
+      "type": "int",
+      "flags": ["PERSISTENT", "BACKUP"],
+      "create_default": true,
+      "enabled": true,
+      "min": 0,
+      "max": 2
+    },
+    {
       "name": "BPLastSeenVersion",
       "default": "",
       "type": "string",

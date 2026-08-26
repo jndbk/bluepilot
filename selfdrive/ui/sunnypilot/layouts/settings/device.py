@@ -82,7 +82,7 @@ class DeviceLayoutSP(DeviceLayout):
       left_text=lambda: tr("Quiet Mode"),
       right_text=lambda: tr("Driver Camera Preview"),
       left_callback=lambda: ui_state.params.put_bool("QuietMode", not ui_state.params.get_bool("QuietMode")),
-      right_callback=lambda: gui_app.push_widget(DriverCameraDialog())
+      right_callback=lambda: gui_app.push_widget(DriverCameraDialog()) if ui_state.is_offroad() else gui_app.push_widget(alert_dialog(tr("Vehicle must be off to preview driver camera.")))
     )
     self._quiet_mode_and_dcam.action_item.right_button.set_button_style(ButtonStyle.NORMAL)
 

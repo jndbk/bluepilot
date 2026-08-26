@@ -19,6 +19,7 @@ from openpilot.selfdrive.ui.bp.onroad.powerflow_gauge_arched import PowerflowGau
 from openpilot.selfdrive.ui.bp.onroad.torque_bar_renderer_bp import TorqueBarRendererBP
 from openpilot.selfdrive.ui.bp.onroad.rad_racer_theme import RadRacerTheme
 from openpilot.selfdrive.ui.bp.mici.onroad.confidence_ball_bp import ConfidenceBallTiciBP
+from openpilot.selfdrive.ui.bp.onroad.cabin_camera_pip import CabinCameraPip
 from openpilot.selfdrive.ui.onroad.driver_state import BTN_SIZE
 from openpilot.selfdrive.ui.sunnypilot.onroad.developer_ui import DeveloperUiState, get_bottom_dev_ui_offset
 from openpilot.selfdrive.ui.ui_state import ui_state
@@ -88,6 +89,8 @@ class AugmentedRoadViewBP(CameraViewBP, AugmentedRoadView, BlindspotRendererMixi
 
     # BluePilot: Rad Racer 8-bit theme (drawing host; selection lives in theme_scene)
     self._rad_racer_theme = RadRacerTheme()
+    # BluePilot: On-Road Cabin / Back-Seat Camera Monitor PiP
+    self._cabin_camera_pip = CabinCameraPip()
 
   def update_fade_out_bottom_overlay(self, _content_rect):
     """BluePilot: Skip MICI fade overlay on TICI — causes unwanted black gradient at bottom."""
@@ -220,6 +223,11 @@ class AugmentedRoadViewBP(CameraViewBP, AugmentedRoadView, BlindspotRendererMixi
     if _scene is not None and not _scene.replaces_hud():
       _scene.draw_foreground(self._content_rect, getattr(self, "_bp_hide_camera_view", False))
 
+    # BluePilot: Render live Cabin / Back-Seat Camera Monitor PiP (under alerts)
+    if self._cabin_camera_pip.is_active():
+      bottom_offset = get_bottom_dev_ui_offset() if ui_state.developer_ui in (DeveloperUiState.BOTTOM, DeveloperUiState.BOTH) else 0.0
+      self._cabin_camera_pip.render_pip(self._content_rect, bottom_offset=bottom_offset)
+
     # Alerts last so they are never covered by gauges or other overlays.
     # BluePilot: Full-screen alerts (e.g. reverse gear) must use content_rect so they cover
     # the confidence ball strip; otherwise the camera shows through where the ball was.
@@ -237,6 +245,12 @@ class AugmentedRoadViewBP(CameraViewBP, AugmentedRoadView, BlindspotRendererMixi
     # BluePilot: Conditionally draw border
     if not self._hide_onroad_border:
       self._draw_border(rect)
+
+  def _handle_mouse_press(self, mouse_pos):
+    if self._cabin_camera_pip.is_active() and rl.check_collision_point_rec(rl.get_mouse_position(), self._cabin_camera_pip._current_rect):
+      self._cabin_camera_pip.cycle_size()
+      return
+    super()._handle_mouse_press(mouse_pos)
 
   def _render_rad_racer_scene(self, rect: rl.Rectangle):
     """Render the full Rad Racer 8-bit scene: skyline, road, sprites, gauge cluster.
