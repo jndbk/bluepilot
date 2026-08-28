@@ -19,7 +19,8 @@ from openpilot.selfdrive.ui.bp.onroad.powerflow_gauge_arched import PowerflowGau
 from openpilot.selfdrive.ui.bp.onroad.torque_bar_renderer_bp import TorqueBarRendererBP
 from openpilot.selfdrive.ui.bp.onroad.rad_racer_theme import RadRacerTheme
 from openpilot.selfdrive.ui.bp.mici.onroad.confidence_ball_bp import ConfidenceBallTiciBP
-from openpilot.selfdrive.ui.bp.onroad.cabin_camera_pip import CabinCameraPip
+from openpilot.selfdrive.ui.onroad.augmented_road_view import ROAD_CAM, WIDE_CAM, WIDE_CAM_MAX_SPEED, ROAD_CAM_MIN_SPEED
+from msgq.visionipc import VisionStreamType
 from openpilot.selfdrive.ui.onroad.driver_state import BTN_SIZE
 from openpilot.selfdrive.ui.sunnypilot.onroad.developer_ui import DeveloperUiState, get_bottom_dev_ui_offset
 from openpilot.selfdrive.ui.ui_state import ui_state
@@ -89,8 +90,7 @@ class AugmentedRoadViewBP(CameraViewBP, AugmentedRoadView, BlindspotRendererMixi
 
     # BluePilot: Rad Racer 8-bit theme (drawing host; selection lives in theme_scene)
     self._rad_racer_theme = RadRacerTheme()
-    # BluePilot: On-Road Cabin / Back-Seat Camera Monitor PiP
-    self._cabin_camera_pip = CabinCameraPip()
+    self._show_cabin_camera = self._bp_params.get_bool("BPShowCabinCamera")
 
   def update_fade_out_bottom_overlay(self, _content_rect):
     """BluePilot: Skip MICI fade overlay on TICI — causes unwanted black gradient at bottom."""
@@ -107,6 +107,7 @@ class AugmentedRoadViewBP(CameraViewBP, AugmentedRoadView, BlindspotRendererMixi
     if self._param_counter >= 60:
       self._param_counter = 0
       self._show_confidence_ball = self._bp_params.get_bool("BPShowConfidenceBall")
+      self._show_cabin_camera = self._bp_params.get_bool("BPShowCabinCamera")
       self._hide_onroad_border = self._bp_params.get_bool("BPHideOnroadBorder")
       try:
         self._cached_gauge_size = int(self._bp_params.get("FordPrefHybridDriveGaugeSize", return_default=True))
@@ -157,8 +158,9 @@ class AugmentedRoadViewBP(CameraViewBP, AugmentedRoadView, BlindspotRendererMixi
     if _scene is not None:
       _scene.draw_background(self._content_rect, getattr(self, "_bp_hide_camera_view", False))
 
-    # Render model (uses full content rect for camera-space overlays)
-    self.model_renderer.render(self._content_rect)
+    # Render model (uses full content rect for camera-space overlays) - skip in full-screen cabin camera view
+    if not self._show_cabin_camera:
+      self.model_renderer.render(self._content_rect)
 
     # SP fade overlay
     self.update_fade_out_bottom_overlay(self._content_rect)
@@ -223,11 +225,6 @@ class AugmentedRoadViewBP(CameraViewBP, AugmentedRoadView, BlindspotRendererMixi
     if _scene is not None and not _scene.replaces_hud():
       _scene.draw_foreground(self._content_rect, getattr(self, "_bp_hide_camera_view", False))
 
-    # BluePilot: Render live Cabin / Back-Seat Camera Monitor PiP (under alerts)
-    if self._cabin_camera_pip.is_active():
-      bottom_offset = get_bottom_dev_ui_offset() if ui_state.developer_ui in (DeveloperUiState.BOTTOM, DeveloperUiState.BOTH) else 0.0
-      self._cabin_camera_pip.render_pip(self._content_rect, bottom_offset=bottom_offset)
-
     # Alerts last so they are never covered by gauges or other overlays.
     # BluePilot: Full-screen alerts (e.g. reverse gear) must use content_rect so they cover
     # the confidence ball strip; otherwise the camera shows through where the ball was.
@@ -246,9 +243,32 @@ class AugmentedRoadViewBP(CameraViewBP, AugmentedRoadView, BlindspotRendererMixi
     if not self._hide_onroad_border:
       self._draw_border(rect)
 
+  def _switch_stream_if_needed(self, sm):
+    if self._show_cabin_camera:
+      target = VisionStreamType.VISION_STREAM_DRIVER
+    elif sm['selfdriveState'].experimentalMode and WIDE_CAM in self.available_streams:
+      v_ego = sm['carState'].vEgo
+      if v_ego < WIDE_CAM_MAX_SPEED:
+        target = WIDE_CAM
+      elif v_ego > ROAD_CAM_MIN_SPEED:
+        target = ROAD_CAM
+      else:
+        target = self.stream_type
+    else:
+      target = ROAD_CAM
+
+    if self.stream_type != target:
+      self.switch_stream(target)
+
   def _handle_mouse_press(self, mouse_pos):
-    if self._cabin_camera_pip.is_active() and rl.check_collision_point_rec(rl.get_mouse_position(), self._cabin_camera_pip._current_rect):
-      self._cabin_camera_pip.cycle_size()
+    # Quick tap on driver monitoring face icon toggles full-screen cabin view on/off
+    dm_x = self._content_rect.x
+    dm_y = self._content_rect.y + self._content_rect.height - BTN_SIZE - 20
+    dm_rect = rl.Rectangle(dm_x, dm_y, BTN_SIZE + 50, BTN_SIZE + 50)
+    pos = rl.get_mouse_position()
+    if rl.check_collision_point_rec(pos, dm_rect):
+      self._show_cabin_camera = not self._show_cabin_camera
+      self._bp_params.put_bool("BPShowCabinCamera", self._show_cabin_camera)
       return
     super()._handle_mouse_press(mouse_pos)
 

@@ -17,8 +17,9 @@ from openpilot.selfdrive.ui.bp.mici.onroad.confidence_ball_bp import ConfidenceB
 from openpilot.selfdrive.ui.ui_state import ui_state, UIStatus
 from openpilot.selfdrive.ui.bp.lib.ui_debug_logger import bp_ui_log
 # BluePilot: swipe-down shortcut to lateral debug screen
-from openpilot.selfdrive.ui.bp.mici.onroad.lateral_debug_mici import LateralDebugMici
 from openpilot.selfdrive.ui.bp.mici.onroad.rad_racer_mici import RadRacerThemeMici
+from openpilot.selfdrive.ui.mici.onroad.augmented_road_view import ROAD_CAM, WIDE_CAM, WIDE_CAM_MAX_SPEED, ROAD_CAM_MIN_SPEED
+from msgq.visionipc import VisionStreamType
 from openpilot.system.ui.widgets import Widget
 # BluePilot: unified theme selector (BPThemePack param)
 from openpilot.selfdrive.ui.bp.lib import theme_pack, theme_scene
@@ -94,6 +95,8 @@ class MiciAugmentedRoadViewBP(MiciCameraViewBP, AugmentedRoadView, BlindspotRend
 
     # BluePilot: Rad Racer 8-bit theme (MICI-scaled; no gauge cluster on the small screen)
     self._rad_racer_theme = RadRacerThemeMici()
+    self._show_cabin_camera = self._bp_params.get_bool("BPShowCabinCamera")
+    self._param_counter = 0
 
   def _on_swipe_down(self):
     if not ui_state.is_onroad():
@@ -112,6 +115,12 @@ class MiciAugmentedRoadViewBP(MiciCameraViewBP, AugmentedRoadView, BlindspotRend
     gui_app.push_widget(self._lat_debug)
 
   def _handle_mouse_release(self, mouse_pos):
+    # Quick tap on driver monitoring face icon toggles full-screen cabin view on/off
+    dm_rect = rl.Rectangle(self._rect.x + 16, self._rect.y + 10, 100, 100)
+    if rl.check_collision_point_rec(rl.get_mouse_position(), dm_rect):
+      self._show_cabin_camera = not self._show_cabin_camera
+      self._bp_params.put_bool("BPShowCabinCamera", self._show_cabin_camera)
+      return
     # BluePilot: suppress click-to-home when a swipe-down was detected by the detector
     if not self._swipe_detector.interacting():
       super()._handle_mouse_release(mouse_pos)
@@ -120,6 +129,11 @@ class MiciAugmentedRoadViewBP(MiciCameraViewBP, AugmentedRoadView, BlindspotRend
     """Override render to place confidence ball on left, offset driver state, and conditionally hide border."""
     bp_ui_log.tick()  # refresh BPUIDebugLog enabled state (mirrors TICI; MICI had no tick, so the toggle was inert)
     start_draw = time.monotonic()
+    self._param_counter += 1
+    if self._param_counter >= 60:
+      self._param_counter = 0
+      self._show_cabin_camera = self._bp_params.get_bool("BPShowCabinCamera")
+
     self._switch_stream_if_needed(ui_state.sm)
     self._update_calibration()
 
@@ -154,8 +168,9 @@ class MiciAugmentedRoadViewBP(MiciCameraViewBP, AugmentedRoadView, BlindspotRend
     elif _scene is not None:
       _scene.draw_background(self._content_rect, getattr(self, "_bp_hide_camera_view", False))
 
-    # Model overlays
-    self._model_renderer.render(self._content_rect)
+    # Model overlays - skip in full-screen cabin camera view
+    if not self._show_cabin_camera:
+      self._model_renderer.render(self._content_rect)
 
     # BluePilot: Rad Racer sprites (ego + leads) over the road; no gauge cluster on MICI,
     # so the ego car anchors to the bottom edge of the content rect instead.
@@ -223,3 +238,20 @@ class MiciAugmentedRoadViewBP(MiciCameraViewBP, AugmentedRoadView, BlindspotRend
     if not ui_state.started:
       rl.draw_rectangle(int(self.rect.x), int(self.rect.y), int(self.rect.width), int(self.rect.height), rl.Color(0, 0, 0, 175))
       self._offroad_label.render(self._content_rect)
+
+  def _switch_stream_if_needed(self, sm):
+    if self._show_cabin_camera:
+      target = VisionStreamType.VISION_STREAM_DRIVER
+    elif sm['selfdriveState'].experimentalMode and WIDE_CAM in self.available_streams:
+      v_ego = sm['carState'].vEgo
+      if v_ego < WIDE_CAM_MAX_SPEED:
+        target = WIDE_CAM
+      elif v_ego > ROAD_CAM_MIN_SPEED:
+        target = ROAD_CAM
+      else:
+        target = self.stream_type
+    else:
+      target = ROAD_CAM
+
+    if self.stream_type != target:
+      self.switch_stream(target)
