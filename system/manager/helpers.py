@@ -45,9 +45,29 @@ def unblock_stdout() -> None:
     os._exit(exit_status)
 
 
+# BluePilot: enforce cabin recording privacy policy
+def enforce_cabin_recording_policy(params: Params) -> None:
+  """Enforces privacy-by-default for cabin audio and driver camera recording.
+  Unless the user explicitly turned on the cabin recording override,
+  ensure RecordFront and RecordAudio are disabled for disk recording.
+  """
+  override = params.get_bool("OverrideCabinRecording")
+  if not override:
+    params.put_bool("RecordFront", False, block=True)
+    params.put_bool("RecordAudio", False, block=True)
+  else:
+    params.put_bool("RecordFront", True, block=True)
+    params.put_bool("RecordAudio", True, block=True)
+# End BluePilot
+
+
 def write_onroad_params(started, params):
   params.put_bool("IsOnroad", started, block=True)
   params.put_bool("IsOffroad", not started, block=True)
+  # BluePilot: enforce privacy policy when transitioning to onroad
+  if started:
+    enforce_cabin_recording_policy(params)
+  # End BluePilot
 
 
 def save_bootlog():

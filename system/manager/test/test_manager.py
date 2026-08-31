@@ -79,3 +79,37 @@ class TestManager:
         if p.sigkill:
           exit_codes = [-signal.SIGKILL]
         assert exit_code in exit_codes, f"{p.name} died with {exit_code}"
+
+  # BluePilot: test cabin recording privacy policy and onroad enforcement
+  def test_cabin_recording_privacy_policy(self):
+    from openpilot.system.manager.helpers import enforce_cabin_recording_policy, write_onroad_params
+    params = Params()
+
+    # Case 1: Default state (override disabled)
+    params.put_bool("OverrideCabinRecording", False, block=True)
+    # Simulate params previously set to True
+    params.put_bool("RecordFront", True, block=True)
+    params.put_bool("RecordAudio", True, block=True)
+
+    enforce_cabin_recording_policy(params)
+    assert not params.get_bool("RecordFront")
+    assert not params.get_bool("RecordAudio")
+
+    # Case 2: On-road transition with override disabled
+    params.put_bool("RecordFront", True, block=True)
+    params.put_bool("RecordAudio", True, block=True)
+    write_onroad_params(True, params)
+    assert not params.get_bool("RecordFront")
+    assert not params.get_bool("RecordAudio")
+
+    # Case 3: Override enabled
+    params.put_bool("OverrideCabinRecording", True, block=True)
+    enforce_cabin_recording_policy(params)
+    assert params.get_bool("RecordFront")
+    assert params.get_bool("RecordAudio")
+
+    # Case 4: On-road transition with override enabled
+    write_onroad_params(True, params)
+    assert params.get_bool("RecordFront")
+    assert params.get_bool("RecordAudio")
+  # End BluePilot

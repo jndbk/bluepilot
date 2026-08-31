@@ -14,6 +14,9 @@ from openpilot.common.params import Params, ParamKeyFlag
 from openpilot.common.text_window import TextWindow
 from openpilot.system.hardware import HARDWARE
 from openpilot.system.manager.helpers import unblock_stdout, write_onroad_params, save_bootlog
+# BluePilot: enforce cabin recording privacy policy
+from openpilot.system.manager.helpers import enforce_cabin_recording_policy
+# End BluePilot
 from openpilot.system.manager.process import ensure_running
 from openpilot.system.manager.process_config import managed_processes
 from openpilot.system.athena.registration import register, UNREGISTERED_DONGLE_ID
@@ -50,6 +53,10 @@ def manager_init() -> None:
 
   if params.get_bool("RecordFrontLock"):
     params.put_bool("RecordFront", True, block=True)
+  else:
+    # BluePilot: enforce cabin recording privacy policy
+    enforce_cabin_recording_policy(params)
+    # End BluePilot
 
   if not PC:
     run_migration(params)
@@ -152,6 +159,10 @@ def manager_thread() -> None:
 
     if started and not started_prev:
       params.clear_all(ParamKeyFlag.CLEAR_ON_ONROAD_TRANSITION)
+      # BluePilot: enforce cabin recording privacy policy on onroad transition
+      if not params.get_bool("RecordFrontLock"):
+        enforce_cabin_recording_policy(params)
+      # End BluePilot
     elif not started and started_prev:
       params.clear_all(ParamKeyFlag.CLEAR_ON_OFFROAD_TRANSITION)
 
